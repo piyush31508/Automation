@@ -9,9 +9,9 @@ const resumePath = process.env.RESUME_PATH;
   let browser;
 
   try {
-    console.log("Launching browser...");
+    console.log("🚀 Launching browser...");
     browser = await puppeteer.launch({
-      headless: 'new', // Recommended headless mode
+      headless: 'new',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -25,36 +25,44 @@ const resumePath = process.env.RESUME_PATH;
     });
 
     const page = await browser.newPage();
-    page.setDefaultNavigationTimeout(60000); // 60s timeout
+    page.setDefaultNavigationTimeout(60000);
 
-    console.log("Navigating to login page...");
-    await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'load' });
+    console.log("🌐 Navigating to login page...");
+    try {
+      await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'load' });
+    } catch (e) {
+      console.warn('⚠️ Page load failed, retrying with domcontentloaded...');
+      await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'domcontentloaded' });
+    }
 
-    console.log("Waiting for login fields...");
+    console.log("⌨️ Filling login credentials...");
     await page.waitForSelector('input[type="text"]', { timeout: 15000 });
     await page.type('input[type="text"]', email, { delay: 100 });
     await page.type('input[type="password"]', password, { delay: 100 });
 
     const loginButton = await page.$('button[type="submit"]');
-    await loginButton.click();
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+      loginButton.click(),
+    ]);
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
-    console.log("Logged in. Navigating to profile page...");
+    console.log("🔐 Logged in successfully.");
 
+    console.log("🔄 Navigating to profile page...");
     await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'networkidle2' });
 
-    console.log("Waiting for upload resume button...");
+    console.log("📄 Waiting for resume upload input...");
     await page.waitForSelector('input[type="file"]', { timeout: 20000 });
 
     const fileInput = await page.$('input[type="file"]');
     await fileInput.uploadFile(resumePath);
 
-    console.log("Resume uploaded. Waiting for save...");
-    await page.waitForTimeout(5000); // wait for upload to complete
+    console.log("📤 Resume uploading...");
+    await page.waitForTimeout(5000);
 
     console.log("✅ Resume upload completed successfully.");
   } catch (err) {
-    console.error("❌ Error occurred during automation:", err);
+    console.error("❌ Automation error:", err.message || err);
     process.exit(1);
   } finally {
     if (browser) {
