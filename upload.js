@@ -7,11 +7,10 @@ const resumePath = process.env.RESUME_PATH;
 
 (async () => {
   let browser;
-
   try {
     console.log("🚀 Launching browser...");
     browser = await puppeteer.launch({
-      headless: 'new',
+      headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -25,48 +24,38 @@ const resumePath = process.env.RESUME_PATH;
     });
 
     const page = await browser.newPage();
-    page.setDefaultNavigationTimeout(60000);
+    await page.setViewport({ width: 1280, height: 800 });
+    await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36');
 
     console.log("🌐 Navigating to login page...");
-    try {
-      await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'load' });
-    } catch (e) {
-      console.warn('⚠️ Page load failed, retrying with domcontentloaded...');
-      await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'domcontentloaded' });
-    }
+    await page.goto('https://www.naukri.com/mnjuser/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
 
     console.log("⌨️ Filling login credentials...");
     await page.waitForSelector('input[type="text"]', { timeout: 15000 });
-    await page.type('input[type="text"]', email, { delay: 100 });
-    await page.type('input[type="password"]', password, { delay: 100 });
+    await page.type('input[type="text"]', email, { delay: 80 });
+    await page.type('input[type="password"]', password, { delay: 80 });
 
     const loginButton = await page.$('button[type="submit"]');
     await Promise.all([
-      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
       loginButton.click(),
     ]);
 
-    console.log("🔐 Logged in successfully.");
+    console.log("✅ Logged in. Navigating to profile page...");
+    await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'networkidle2', timeout: 60000 });
 
-    console.log("🔄 Navigating to profile page...");
-    await page.goto('https://www.naukri.com/mnjuser/profile', { waitUntil: 'networkidle2' });
-
-    console.log("📄 Waiting for resume upload input...");
+    console.log("📂 Uploading resume...");
     await page.waitForSelector('input[type="file"]', { timeout: 20000 });
-
     const fileInput = await page.$('input[type="file"]');
     await fileInput.uploadFile(resumePath);
 
-    console.log("📤 Resume uploading...");
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(5000); // wait for file to upload
+    console.log("✅ Resume uploaded successfully!");
 
-    console.log("✅ Resume upload completed successfully.");
   } catch (err) {
-    console.error("❌ Automation error:", err.message || err);
+    console.error("❌ Automation error:", err.message);
     process.exit(1);
   } finally {
-    if (browser) {
-      await browser.close();
-    }
+    if (browser) await browser.close();
   }
 })();
