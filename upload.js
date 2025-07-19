@@ -32,9 +32,15 @@ CLI arguments override .env values.
 
 (async () => {
   const browser = await puppeteer.launch({
-    headless: false,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  headless: 'new', // Required for GitHub Actions (not false!)
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--single-process',
+  ]
+});
 
   const page = await browser.newPage();
   await page.setViewport({ width: 1920, height: 1080 });
