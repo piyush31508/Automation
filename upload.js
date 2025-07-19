@@ -1,76 +1,59 @@
-require("dotenv").config();
-const puppeteer = require("puppeteer");
-const path = require("path");
-
-// CLI inputs
-const [, , argEmail, argPassword, argResumePath] = process.argv;
-
-// Fallback to .env if CLI args are not given
-const email = argEmail || process.env.NAUKRI_EMAIL;
-const password = argPassword || process.env.NAUKRI_PASSWORD;
-const resumePath = path.resolve(__dirname, argResumePath || process.env.RESUME_PATH);
-
-// Show usage help if necessary
-if (!email || !password || !resumePath || process.argv.includes("--help")) {
-  console.log(`
-Usage:
-  node upload.js <email> <password> <resume-path>
-
-Example:
-  node upload.js user@example.com mypass123 ./resume.pdf
-
-Tip:
-  You can also store credentials in a .env file:
-    NAUKRI_EMAIL=your-email
-    NAUKRI_PASSWORD=your-password
-    RESUME_PATH=absolute-or-relative-path
-
-CLI arguments override .env values.
-`);
-  process.exit(1);
-}
+require('dotenv').config();
+const puppeteer = require('puppeteer');
+const path = require('path');
 
 (async () => {
   const browser = await puppeteer.launch({
-  headless: 'new', // Required for GitHub Actions (not false!)
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--single-process',
-  ]
-});
+    headless: true, // false = visible browser for debugging
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-blink-features=AutomationControlled'
+    ],
+    defaultViewport: null
+  });
 
   const page = await browser.newPage();
-  await page.setViewport({ width: 1920, height: 1080 });
+
+  await page.setUserAgent(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/119.0.0.0 Safari/537.36"
+  );
 
   console.log("Navigating to login page...");
-  await page.goto("https://www.naukri.com/nlogin/login", { waitUntil: "domcontentloaded" });
+  await page.goto('https://www.naukri.com/mnjuser/profile', {
+    waitUntil: 'networkidle2',
+    timeout: 0
+  });
 
   console.log("Waiting for login fields...");
-  await page.waitForSelector("#usernameField", { timeout: 40000 });
-  await page.type('#usernameField', email);
-  await page.type('#passwordField', password);
-  await page.click('button[type="submit"]');
+  await page.waitForSelector('#usernameField', { timeout: 60000 });
+  await page.type('#usernameField', process.env.NAUKRI_EMAIL, { delay: 50 });
+  await page.type('#passwordField', process.env.NAUKRI_PASSWORD, { delay: 50 });
 
-  console.log("Logging in...");
-  await page.waitForNavigation({ waitUntil: "networkidle2" });
+  const loginBtnSelector = 'button[type="submit"], .btn-primary.login-btn'; // selector might change
+  await page.waitForSelector(loginBtnSelector);
+  await Promise.all([
+    page.click(loginBtnSelector),
+    page.waitForNavigation({ waitUntil: 'networkidle2' }),
+  ]);
 
-  console.log("Navigating to profile page...");
-  await page.goto("https://www.naukri.com/mnjuser/profile", { waitUntil: "networkidle2" });
+  console.log("Logged in. Navigating to profile page...");
+  await page.goto('https://www.naukri.com/mnjuser/profile', {
+    waitUntil: 'networkidle2',
+    timeout: 0
+  });
 
-  console.log("Uploading resume...");
-  const fileInput = await page.$('input[type="file"]');
-  if (!fileInput) {
-    console.error("❌ Resume file input not found.");
-    await browser.close();
-    return;
-  }
+  console.log("Waiting for upload resume button...");
+  const uploadInputSelector = 'input[type="file"]';
+  await page.waitForSelector(uploadInputSelector, { timeout: 60000 });
 
-  await fileInput.uploadFile(resumePath);
-  console.log("✅ Resume uploaded successfully!");
+  const resumePath = path.resolve(process.env.RESUME_PATH);
+  const inputUploadHandle = await page.$(uploadInputSelector);
+  await inputUploadHandle.uploadFile(resumePath);
 
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  console.log("Resume uploaded. Waiting for save...");
+  await page.waitForTimeout(5000); // Wait to ensure resume is saved
+
   await browser.close();
+  console.log("✅ Resume upload completed successfully.");
 })();
