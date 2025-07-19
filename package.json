@@ -1,0 +1,16 @@
+{
+  "name": "automation",
+  "version": "1.0.0",
+  "description": "Automates daily resume reupload on Naukri using Puppeteer",
+  "main": "upload.js",
+  "scripts": {
+    "start": "node upload.js"
+  },
+  "keywords": ["automation", "naukri", "resume", "puppeteer"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^24.14.0",
+    "dotenv": "^17.2.0"
+  }
+}
