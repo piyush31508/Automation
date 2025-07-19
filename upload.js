@@ -4,7 +4,7 @@ const path = require('path');
 
 (async () => {
   const browser = await puppeteer.launch({
-    headless: true, // false = visible browser for debugging
+    headless: "new",
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -22,7 +22,7 @@ const path = require('path');
   console.log("Navigating to login page...");
   await page.goto('https://www.naukri.com/mnjuser/profile', {
     waitUntil: 'networkidle2',
-    timeout: 0
+    timeout: 60000
   });
 
   console.log("Waiting for login fields...");
@@ -30,7 +30,7 @@ const path = require('path');
   await page.type('#usernameField', process.env.NAUKRI_EMAIL, { delay: 50 });
   await page.type('#passwordField', process.env.NAUKRI_PASSWORD, { delay: 50 });
 
-  const loginBtnSelector = 'button[type="submit"], .btn-primary.login-btn'; // selector might change
+  const loginBtnSelector = 'button[type="submit"], .btn-primary.login-btn';
   await page.waitForSelector(loginBtnSelector);
   await Promise.all([
     page.click(loginBtnSelector),
@@ -40,7 +40,7 @@ const path = require('path');
   console.log("Logged in. Navigating to profile page...");
   await page.goto('https://www.naukri.com/mnjuser/profile', {
     waitUntil: 'networkidle2',
-    timeout: 0
+    timeout: 60000
   });
 
   console.log("Waiting for upload resume button...");
@@ -52,7 +52,7 @@ const path = require('path');
   await inputUploadHandle.uploadFile(resumePath);
 
   console.log("Resume uploaded. Waiting for save...");
-  await page.waitForTimeout(5000); // Wait to ensure resume is saved
+  await page.waitForTimeout(5000);
 
   await browser.close();
   console.log("✅ Resume upload completed successfully.");

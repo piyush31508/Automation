@@ -6,11 +6,16 @@
   "scripts": {
     "start": "node upload.js"
   },
-  "keywords": ["automation", "naukri", "resume", "puppeteer"],
+  "keywords": [
+    "automation",
+    "naukri",
+    "resume",
+    "puppeteer"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "puppeteer": "^24.14.0",
-    "dotenv": "^17.2.0"
+    "dotenv": "^17.2.0",
+    "puppeteer": "^20.7.4"
   }
 }
