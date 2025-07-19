@@ -8,12 +8,14 @@ const resumePath = path.resolve(__dirname, process.env.RESUME_PATH);
 
 (async () => {
   const browser = await puppeteer.launch({
-    headless: false,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  headless: 'new',
+  args: ['--no-sandbox', '--disable-setuid-sandbox']
+});
+
+  console.log("Using resume:", resumePath);
 
   const page = await browser.newPage();
-  await page.setViewport({ width: 1366, height: 768 });
+  await page.setViewport({ width: 1920, height: 1080 });
 
   // Navigate to Naukri login
   await page.goto("https://www.naukri.com/nlogin/login", { waitUntil: "domcontentloaded" });
